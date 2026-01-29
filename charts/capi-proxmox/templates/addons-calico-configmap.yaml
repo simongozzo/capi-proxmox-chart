@@ -1,3 +1,4 @@
+{{- if and .Values.addons.enabled .Values.addons.calico }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -4983,3 +4984,4 @@ data:
                   - /usr/bin/check-status
                   - -r
                 periodSeconds: 10
+{{- end }}

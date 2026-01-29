@@ -7,13 +7,17 @@ metadata:
 spec:
   clusterSelector:
     matchLabels:
+      {{- if and .Values.addons.enabled .Values.addons.calico }}
       cni: calico
+      {{- end }}
       {{- if and .Values.addons.enabled .Values.addons.metrics }}
       metrics-server: "true"
       {{- end }}
   resources:
+  {{- if and .Values.addons.enabled .Values.addons.calico }}
   - kind: ConfigMap
     name: calico-crs-configmap
+  {{- end }}
   {{- if and .Values.addons.enabled .Values.addons.metrics }}
   - kind: ConfigMap
     name: metrics-server-configmap

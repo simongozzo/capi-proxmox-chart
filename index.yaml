@@ -2,10 +2,10 @@ apiVersion: v1
 entries:
   capi-proxmox:
   - apiVersion: v2
-    created: "2026-01-29T12:50:22.0229+01:00"
-    digest: 6a142b3be08b807656098f891434afe91176703782e2196c1b0cc7fd8023f7ca
+    created: "2026-01-29T12:56:43.037991+01:00"
+    digest: 5aeb06df203088bef1187fcd0759b9442446301ecaf165b98ca6a000783624d9
     name: capi-proxmox
     urls:
     - https://simongozzo.github.io/capi-proxmox-chart/docs/capi-proxmox-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-29T12:50:22.021605+01:00"
+generated: "2026-01-29T12:56:43.036374+01:00"

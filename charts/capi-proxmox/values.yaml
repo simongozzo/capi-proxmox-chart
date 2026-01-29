@@ -40,9 +40,10 @@ autoscale:
 
 # addons
 addons:
-  enabled: true # calico par default
+  enabled: true 
+  calico: true
   metrics: true
-  traefik: false
+  traefik: false # testing
 
 ########
 # cluster Config
