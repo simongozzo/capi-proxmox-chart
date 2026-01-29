@@ -32,7 +32,7 @@ update:
   enabled: false
   channel: ante-prod
 
-#autoscale
+#autoscale if enable surcharge workerMachineCount
 autoscale:
   enabled: false 
   min: 1
@@ -70,12 +70,6 @@ allowedNodes: []
 # currently defined in the images template created with image-builder capi
 kubernetesVersion: "v1.32.4"
 
-#automatise via helper
-# par exemple augmenter la taille des disques
-# declencher le rollout restart plan incrementer la version
-#controlplanVersion: "v0"
-# declencher le rollout restart worker incrementer la version
-#bootstrapVersion: "v1"
 
 # networking VM
 vipNetworkInterface: ""
