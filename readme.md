@@ -1,4 +1,4 @@
-# Cluster Api template Promox. 
+# Cluster Api template Promox FLATCAR
 
 L'idée est de deployer des clusters Kubenetes avec cluster API en mode gitops avec ArgoCD.   
 Je me sert de cette chart pour appréhender le concepte de CAPI. 
