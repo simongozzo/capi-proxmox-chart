@@ -4,6 +4,7 @@ L'idée est de deployer des clusters Kubenetes avec cluster API en mode gitops a
 Je me sert de cette chart pour appréhender le concepte de CAPI. 
 Je partage ici, je me dis que ça peut toujours servir à quelqu'un.  
 Je déploye des clusters Flatcar basé sur une image buildé avec image builder sur le provider PROXMOX. 
+Il y a surement des trucs qui marche pas et des trucs qui servent à rien.  
 
 # Référence 
 
@@ -36,7 +37,7 @@ dependencies:
         ├── templates
         └── values.yaml
 ```
-## stucture de l'ApplicationSet
+## stucture de l'ApplicationSet ArgoCD
 ```
 ---
 apiVersion: argoproj.io/v1alpha1
