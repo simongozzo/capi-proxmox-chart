@@ -101,3 +101,7 @@ kubectl get secret k8sdev-kubeconfig \
   -n dev \
   -o jsonpath='{.data.value}' | base64 -d > ~/.kube/k8sdev.yml
 ```
+
+## template PROXMOX
+La dernier releases https://github.com/ionos-cloud/cluster-api-provider-proxmox ne prend pas en charge la creation de disque supplementaire pour les nodes.
+donc si on veut utiliser par exemple le stockage longhorn il faut ajouter un disque supplementaire au template proxmox qui vient de image builder.  
