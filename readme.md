@@ -12,6 +12,19 @@ https://github.com/ionos-cloud/cluster-api-provider-proxmox
 https://cluster-api.sigs.k8s.io/introduction  
 https://image-builder.sigs.k8s.io/
 
+## Les indispensables
+### serveur proxmox 
+L'installation qui vous plaira. 
+https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_12_Bookworm  
+
+### cluster existant
+L'installation qui vous plaira. 
+https://kind.sigs.k8s.io/docs/user/quick-start/
+https://docs.k3s.io/installation
+
+### ArgoCD sur le cluster de existant
+https://argo-cd.readthedocs.io/en/stable/
+
 ## installation chart via dependencies
 ```
 apiVersion: v2
@@ -79,5 +92,12 @@ spec:
           - ApplyOutOfSyncOnly=true
           - CreateNamespace=true
           - ServerSideApply=true
+```
 
+## export kubeconfig
+exemple :  
+```
+kubectl get secret k8sdev-kubeconfig \
+  -n dev \
+  -o jsonpath='{.data.value}' | base64 -d > ~/.kube/k8sdev.yml
 ```
