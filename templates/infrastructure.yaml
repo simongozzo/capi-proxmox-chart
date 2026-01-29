@@ -1,0 +1,67 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ProxmoxCluster
+metadata:
+  name: {{ .Values.clusterName }}
+spec:
+  controlPlaneEndpoint:
+    host: {{ .Values.controlPlaneEndpointIP }}
+    port: 6443
+  ipv4Config:
+    addresses: {{ .Values.nodeIPRanges }}
+    prefix: {{ .Values.ipPrefix }}
+    gateway: {{ .Values.gateway }}
+  dnsServers: {{ toYaml .Values.dnsServers | nindent 4 }}
+  allowedNodes: {{ toYaml .Values.allowedNodes | nindent 4 }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ProxmoxMachineTemplate
+metadata:
+  name: {{ .Values.clusterName }}-control-plane-{{ include "machineTemplatePlanHash" . }}
+spec:
+  template:
+    spec:
+      sourceNode: {{ .Values.proxmoxSourceNode }} 
+      templateID: {{ .Values.templateVmid }}
+      format: "qcow2"
+      full: true
+      numSockets: {{ .Values.numSockets }}
+      numCores: {{ .Values.numCores }}
+      memoryMiB: {{ .Values.memoryMiB }}
+      disks:
+        bootVolume:
+          disk: {{ .Values.bootVolumeDevice }}
+          sizeGb: {{ .Values.bootVolumeSize }}
+      network:
+        default:
+          bridge: {{ .Values.bridge }}
+          model: virtio
+      checks:
+        skipQemuGuestAgent: false
+        skipCloudInitStatus: true
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ProxmoxMachineTemplate
+metadata:
+  name: {{ .Values.clusterName }}-worker-{{ include "machineTemplateHash" . }}
+spec:
+  template:
+    spec:
+      sourceNode: {{ .Values.proxmoxSourceNode }} 
+      templateID: {{ .Values.templateVmid }}
+      format: "qcow2"
+      full: true
+      numSockets: {{ .Values.numSocketsWorkers }}
+      numCores: {{ .Values.numCoresWorkers }}
+      memoryMiB: {{ .Values.memoryMiBWorkers }}
+      disks:
+        bootVolume:
+          disk: {{ .Values.bootVolumeDevice }}
+          sizeGb: {{ .Values.bootVolumeSizeWorkers }}
+      network:
+        default:
+          bridge: {{ .Values.bridge }}
+          model: virtio
+      checks:
+        skipQemuGuestAgent: false
+        skipCloudInitStatus: true

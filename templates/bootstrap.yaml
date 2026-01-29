@@ -1,0 +1,246 @@
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfigTemplate
+metadata:
+  name: {{ .Values.clusterName }}-worker-{{ include "machineTemplateHash" . }}
+  #name: {{ .Values.clusterName }}-worker
+  namespace: {{ include "cluster.namespace" . }}
+spec:
+  template:
+    spec:
+      format: ignition
+      ignition:
+        containerLinuxConfig:
+          additionalConfig: |-
+            storage:
+              files:
+              - path: /opt/set-hostname
+                filesystem: root
+                mode: 0744
+                contents:
+                  inline: |
+                    #!/bin/sh
+                    set -x
+                    echo "${COREOS_CUSTOM_HOSTNAME}" > /etc/hostname
+                    hostname "${COREOS_CUSTOM_HOSTNAME}"
+                    echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+                    echo "127.0.0.1   localhost" >>/etc/hosts
+                    echo "127.0.0.1   ${COREOS_CUSTOM_HOSTNAME}" >>/etc/hosts
+              {{- if .Values.mount.enabled }}
+              - path: /opt/init-data-disk.sh
+                mode: 0755
+                contents:
+                  inline: |
+                    #!/bin/sh
+                    set -eux
+                    DISK=/dev/sdb
+                    MOUNTPOINT={{ .Values.mount.defaultDataPath }}
+                    i=0
+                    while [ ! -b "$DISK" ] && [ "$i" -lt 20 ]; do
+                      sleep 1
+                      i=$((i+1))
+                    done
+                    if ! blkid "$DISK" >/dev/null 2>&1; then
+                      wipefs -a "$DISK"
+                      mkfs.ext4 -F "$DISK"
+                    fi
+                    mkdir -p "$MOUNTPOINT"
+                    mountpoint -q "$MOUNTPOINT" || mount "$DISK" "$MOUNTPOINT"
+              - path: /etc/modules-load.d/iscsi.conf
+                mode: 0644
+                contents:
+                  inline: |
+                    iscsi_tcp
+              {{- end }}
+              - path: /etc/flatcar/update.conf
+                overwrite: true
+                mode: 0644
+                contents:
+                  inline: |
+              {{- if .Values.update.enabled }}
+                    SERVER=https://nebraska.lagoz.fr/v1/update
+                    GROUP={{ .Values.update.channel }}
+              {{- else }}
+                    SERVER=disabled
+              {{- end }}
+              {{- if .Values.lvm.worker.enabled }}
+              - path: /opt/lvm.sh
+                mode: 0744
+                contents:
+                  inline: |
+                    #!/bin/bash
+                    set -euo pipefail
+                    disks=/dev/sdb
+                    # Vérifier si le disque a déjà un PV LVM
+                    if pvs "${disks}" &>/dev/null; then
+                      echo "Physical Volume already exists on ${disks} - SKIP initialization"
+                    else
+                      echo "Initializing Physical Volume on ${disks}..."
+                      sgdisk -Z "${disks}" || true
+                      sleep 1
+                      wipefs -a "${disks}"
+                      sleep 1
+                      pvcreate "${disks}"
+                    fi
+                    # Vérifier si le VG existe
+                    if vgs vg-system &>/dev/null; then
+                      echo "Volume Group vg-system already exists - SKIP creation"
+                    else
+                      echo "Creating Volume Group vg-system..."
+                      vgcreate vg-system "${disks}"
+                    fi
+                    # Créer les volumes logiques s'ils n'existent pas
+                    {{- range $index, $partition := .Values.lvm.worker.partitions }}
+                    if lvs vg-system/vol_{{ $partition.name }} &>/dev/null; then
+                      echo "Logical Volume vol_{{ $partition.name }} already exists - SKIP"
+                    else
+                      echo "Creating vol_{{ $partition.name }}..."
+                      {{- if eq (int $partition.size) 0 }}
+                      lvcreate -n vol_{{ $partition.name }} -l 100%FREE vg-system
+                      {{- else }}
+                      lvcreate -n vol_{{ $partition.name }} -L {{ $partition.size }}G vg-system
+                      {{- end }}
+                      
+                      # Vérifier si déjà formaté
+                      if blkid /dev/vg-system/vol_{{ $partition.name }} | grep -q ext4; then
+                        echo "vol_{{ $partition.name }} already formatted - SKIP"
+                      else
+                        echo "Formatting vol_{{ $partition.name }}..."
+                        mkfs.ext4 /dev/vg-system/vol_{{ $partition.name }}
+                      fi
+                    fi
+                    {{- end }}
+                {{- end }}
+            systemd:
+              units:
+              {{- if .Values.lvm.worker.enabled }}
+              - name: lvm-setup.service
+                enabled: true
+                contents: |
+                  [Unit]
+                  Description=LVM Setup
+                  #ConditionFirstBoot=yes
+                  DefaultDependencies=no
+                  Before=local-fs-pre.target
+                  [Service]
+                  Type=oneshot
+                  Restart=on-failure
+                  RemainAfterExit=yes
+                  ExecStart=/opt/lvm.sh
+                  [Install]
+                  WantedBy=multi-user.target
+              {{- range $index, $partition := .Values.lvm.worker.partitions }}
+              - name: {{ include "pathToMountUnit" $partition.path }}
+                enabled: true
+                contents: |
+                  [Unit]
+                  Description=Mount LVM to {{ $partition.name }} dir
+                  After=lvm-setup.service
+                  [Mount]
+                  What=/dev/vg-system/vol_{{ $partition.name }}
+                  Where={{ .path }}
+                  Type=ext4
+                  Options=defaults
+                  [Install]
+                  WantedBy=local-fs.target
+              - name: {{ .service }}.service
+                dropins:
+                  - name: 10-wait-{{ $partition.name }}.conf
+                    contents: |
+                      [Unit]
+                      After={{ include "pathToMountUnit" $partition.path }}
+                      Requires={{ include "pathToMountUnit" $partition.path }}
+              {{- end }}
+              {{- end }}
+              {{- if .Values.mount.enabled }}
+              - name: init-data-disk.service
+                enabled: true
+                contents: |
+                  [Unit]
+                  Description=Initialize data disk for Longhorn
+                  After=local-fs.target
+                  Before=kubeadm.service
+                  ConditionPathExists=/dev/sdb
+                  [Service]
+                  Type=oneshot
+                  ExecStart=/opt/init-data-disk.sh
+                  RemainAfterExit=yes
+                  [Install]
+                  WantedBy=multi-user.target
+              {{- end }}
+              {{- if or .Values.mount.enabled .Values.lvm.worker.enabled }}
+              - name: iscsid.service
+                enabled: true
+              {{- end }}
+              {{- if .Values.update.enabled }}
+              - name: update-engine.service
+                enabled: true
+                mask: false
+              {{- end }}
+              - name: coreos-metadata.service
+                contents: |
+                  [Unit]
+                  Description=Proxmox metadata agent
+                  After=nss-lookup.target
+                  After=network-online.target
+                  Wants=network-online.target
+                  [Service]
+                  Type=oneshot
+                  Restart=on-failure
+                  RemainAfterExit=yes
+                  EnvironmentFile=/etc/proxmox-env
+                  ExecStart=/usr/bin/mkdir --parent /run/metadata
+                  ExecStart=/bin/bash -c 'env > /run/metadata/flatcar'
+                  [Install]
+                  WantedBy=multi-user.target
+              - name: set-hostname.service
+                enabled: true
+                contents: |
+                  [Unit]
+                  Description=Set the hostname for this machine
+                  Requires=coreos-metadata.service
+                  After=coreos-metadata.service
+                  [Service]
+                  Type=oneshot
+                  EnvironmentFile=/run/metadata/flatcar
+                  ExecStart=/opt/set-hostname
+                  [Install]
+                  WantedBy=multi-user.target
+              - name: kubeadm.service
+                enabled: true
+                dropins:
+                - name: 10-flatcar.conf
+                  contents: |
+                    [Unit]
+                    # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                    Requires=coreos-metadata.service
+                    After=coreos-metadata.service
+                    # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+                    After=containerd.service
+                    [Service]
+                    # Make metadata environment variables available for pre-kubeadm commands.
+                    EnvironmentFile=/run/metadata/flatcar
+                    # Log to file
+                    StandardOutput=append:/var/log/kubeadm-service.log
+                    StandardError=inherit
+      preKubeadmCommands:
+        #- rm /etc/proxmox-env
+        - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+        - cp /etc/kubeadm.yml.tmp /etc/kubeadm.yml
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            - name: provider-id
+              value: "proxmox://${COREOS_CUSTOM_INSTANCE_ID}"
+      users:
+        - name: core
+          {{- if .Values.vmSshKeys }}
+          sshAuthorizedKeys: {{ toYaml .Values.vmSshKeys | nindent 10 }}
+          {{- else }}
+          sshAuthorizedKeys:
+          {{- $sshSecret := (lookup "v1" "Secret" .Release.Namespace .Values.existingSecret) }}
+          {{- if $sshSecret }}
+            - {{ (lookup "v1" "Secret" .Release.Namespace .Values.existingSecret).data.key | b64dec }}
+          {{- end }}
+          {{- end }}
+          sudo: ALL=(ALL) NOPASSWD:ALL

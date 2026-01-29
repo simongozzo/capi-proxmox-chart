@@ -1,0 +1,10 @@
+apiVersion: v2
+name: capi-proxmox
+version: 0.1.0
+# dependencies:
+#   - name: dev
+#     version: 0.1.0
+#     repository: "file://clusters/dev"
+#   - name: internal
+#     version: 0.1.0
+#     repository: "file://clusters/internal"

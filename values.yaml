@@ -1,0 +1,105 @@
+# pv
+mount:
+  enabled: false
+  name: longhorn
+  defaultDataPath: '/var/lib/longhorn'
+
+# lvm only wo longhorn / rook or other
+lvm:
+  worker:
+    enabled: false
+    disk: /dev/sdb  # Disque à utiliser pour LVM
+    partitions:
+      - name: longhorn
+        path: '/var/lib/longhorn'
+        size: 10  # En GB
+        service: longhorn  # Service qui dépend de ce mount pour 
+      # - name: containerd
+      #   path: '/var/lib/containerd'
+      #   size: 12  # 0 = utilise tout l'espace restant
+      #   service: containerd
+  plane:
+    enabled: false
+    disk: /dev/sdb  # Disque à utiliser pour LVM
+    partitions:
+      - name: longhorn
+        path: '/var/lib/longhorn'
+        size: 10  # En GB
+        service: longhorn  # Service qui dépend de ce mount
+
+# update - channel is prod-local or ante-prod
+update:
+  enabled: false
+  channel: ante-prod
+
+#autoscale
+autoscale:
+  enabled: false 
+  min: 1
+  max: 4
+
+# addons
+addons:
+  enabled: true
+  metrics: true
+  traefik: false
+
+########
+# cluster Config
+clusterName: ""
+certSANs: []
+  # - k8sdev.lagoz.fr
+cidrBlocks: "10.10.0.0/16"
+
+# provider capi conf : PROXMOX
+proxmoxSourceNode: "unixenv"
+templateVmid: ""
+
+## ssh 
+vmSshKeys: [] 
+  # - "ssh-ed25519 ..."
+# or declare secret 
+existingSecret: ""
+# kubectl create secret generic my-ssh-keys \
+#   --from-literal=key="ssh-ed25519 ..."
+
+allowedNodes: 
+  - unixenv
+
+# currently defined in the images template created with image-builder capi
+kubernetesVersion: "v1.32.4"
+
+#automatise via helper
+# par exemple augmenter la taille des disques
+# declencher le rollout restart plan incrementer la version
+#controlplanVersion: "v0"
+# declencher le rollout restart worker incrementer la version
+#bootstrapVersion: "v1"
+
+# networking VM
+vipNetworkInterface: ""
+controlPlaneEndpointIP: ""
+nodeIPRanges: "[]"
+gateway: "192.168.0.254"
+ipPrefix: "24"
+dnsServers: 
+  - 192.168.0.50
+  - 192.168.0.254
+bridge: "br0"
+
+# ControlPlane config
+controlPlaneMachineCount: "1"
+bootVolumeDevice: "scsi0"
+bootVolumeSize: "20"
+numSockets: "1"
+numCores: "2"
+memoryMiB: "6144"
+
+# Workers config - workerMachineCount if autoscale disable
+workerMachineCount: "1"
+bootVolumeSizeWorkers: "20"
+numSocketsWorkers: "1"
+numCoresWorkers: "2"
+memoryMiBWorkers: "8192"
+# longhornVolumeDevice: "scsi1"
+# longhornVolumeSize: "20"

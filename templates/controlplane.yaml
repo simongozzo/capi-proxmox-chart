@@ -1,0 +1,325 @@
+
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlane
+metadata:
+  name: {{ .Values.clusterName }}-control-plane
+  #name: {{ .Values.clusterName }}-control-plane-{{ include "machineTemplatePlanHash" . }}
+spec:
+  replicas: {{ .Values.controlPlaneMachineCount }}
+  machineTemplate:
+     spec:
+      infrastructureRef:
+        kind: ProxmoxMachineTemplate
+        apiGroup: infrastructure.cluster.x-k8s.io
+        name: {{ .Values.clusterName }}-control-plane-{{ include "machineTemplatePlanHash" . }}
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        certSANs: {{ toYaml .Values.certSANs | nindent 8 }}
+    format: ignition
+    ignition:
+      containerLinuxConfig:
+        additionalConfig: |-
+          storage:
+            files:
+            - path: /opt/set-hostname
+              filesystem: root
+              mode: 0744
+              contents:
+                inline: |
+                  #!/bin/sh
+                  set -x
+                  echo "${COREOS_CUSTOM_HOSTNAME}" > /etc/hostname
+                  hostname "${COREOS_CUSTOM_HOSTNAME}"
+                  echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+                  echo "127.0.0.1   localhost" >>/etc/hosts
+                  echo "127.0.0.1   ${COREOS_CUSTOM_HOSTNAME}" >>/etc/hosts
+            - path: /etc/flatcar/update.conf
+              overwrite: true
+              mode: 0644
+              contents:
+                inline: |
+            {{- if .Values.update.enabled }}
+                  SERVER=https://nebraska.lagoz.fr/v1/update
+                  GROUP={{ .Values.update.channel }}
+            {{- else }}
+                  SERVER=disabled
+            {{- end }}
+            {{- if .Values.lvm.plane.enabled }}
+            - path: /opt/lvm.sh
+              mode: 0744
+              contents:
+                inline: |
+                  #!/bin/bash
+                  set -euo pipefail
+                  disks=/dev/sdb
+                  # Vérifier si le disque a déjà un PV LVM
+                  if pvs "${disks}" &>/dev/null; then
+                    echo "Physical Volume already exists on ${disks} - SKIP initialization"
+                  else
+                    echo "Initializing Physical Volume on ${disks}..."
+                    sgdisk -Z "${disks}" || true
+                    sleep 1
+                    wipefs -a "${disks}"
+                    sleep 1
+                    pvcreate "${disks}"
+                  fi
+                  # Vérifier si le VG existe
+                  if vgs vg-system &>/dev/null; then
+                    echo "Volume Group vg-system already exists - SKIP creation"
+                  else
+                    echo "Creating Volume Group vg-system..."
+                    vgcreate vg-system "${disks}"
+                  fi
+                  # Créer les volumes logiques s'ils n'existent pas
+                  {{- range $index, $partition := .Values.lvm.plane.partitions }}
+                  if lvs vg-system/vol_{{ $partition.name }} &>/dev/null; then
+                    echo "Logical Volume vol_{{ $partition.name }} already exists - SKIP"
+                  else
+                    echo "Creating vol_{{ $partition.name }}..."
+                    {{- if eq (int $partition.size) 0 }}
+                    lvcreate -n vol_{{ $partition.name }} -l 100%FREE vg-system
+                    {{- else }}
+                    lvcreate -n vol_{{ $partition.name }} -L {{ $partition.size }}G vg-system
+                    {{- end }}
+                    
+                    # Vérifier si déjà formaté
+                    if blkid /dev/vg-system/vol_{{ $partition.name }} | grep -q ext4; then
+                      echo "vol_{{ $partition.name }} already formatted - SKIP"
+                    else
+                      echo "Formatting vol_{{ $partition.name }}..."
+                      mkfs.ext4 /dev/vg-system/vol_{{ $partition.name }}
+                    fi
+                  fi
+                  {{- end }}
+              {{- end }}
+          systemd:
+            units:
+            {{- if .Values.lvm.plane.enabled }}
+            - name: lvm-setup.service
+              enabled: true
+              contents: |
+                [Unit]
+                Description=LVM Setup
+                #ConditionFirstBoot=yes
+                DefaultDependencies=no
+                Before=local-fs-pre.target
+                [Service]
+                Type=oneshot
+                Restart=on-failure
+                RemainAfterExit=yes
+                ExecStart=/opt/lvm.sh
+                [Install]
+                WantedBy=multi-user.target
+            {{- range $index, $partition := .Values.lvm.plane.partitions }}
+            - name: {{ include "pathToMountUnit" $partition.path }}
+              enabled: true
+              contents: |
+                [Unit]
+                Description=Mount LVM to {{ $partition.name }} dir
+                After=lvm-setup.service
+                [Mount]
+                What=/dev/vg-system/vol_{{ $partition.name }}
+                Where={{ .path }}
+                Type=ext4
+                Options=defaults
+                [Install]
+                WantedBy=local-fs.target
+            - name: {{ .service }}.service
+              dropins:
+                - name: 10-wait-{{ $partition.name }}.conf
+                  contents: |
+                    [Unit]
+                    After={{ include "pathToMountUnit" $partition.path }}
+                    Requires={{ include "pathToMountUnit" $partition.path }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.update.enabled }}
+            - name: update-engine.service
+              enabled: true
+              mask: false
+            {{- end }}
+            - name: coreos-metadata.service
+              contents: |
+                [Unit]
+                Description=Proxmox metadata agent
+                After=nss-lookup.target
+                After=network-online.target
+                Wants=network-online.target
+                [Service]
+                Type=oneshot
+                Restart=on-failure
+                RemainAfterExit=yes
+                EnvironmentFile=/etc/proxmox-env
+                ExecStart=/usr/bin/mkdir --parent /run/metadata
+                ExecStart=/bin/bash -c 'env > /run/metadata/flatcar'
+                [Install]
+                WantedBy=multi-user.target
+            - name: set-hostname.service
+              enabled: true
+              contents: |
+                [Unit]
+                Description=Set the hostname for this machine
+                Requires=coreos-metadata.service
+                After=coreos-metadata.service
+                [Service]
+                Type=oneshot
+                EnvironmentFile=/run/metadata/flatcar
+                ExecStart=/opt/set-hostname
+                [Install]
+                WantedBy=multi-user.target
+            - name: kubeadm.service
+              enabled: true
+              dropins:
+              - name: 10-flatcar.conf
+                contents: |
+                  [Unit]
+                  # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                  Requires=coreos-metadata.service
+                  After=coreos-metadata.service
+                  # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+                  After=containerd.service
+                  [Service]
+                  # Make metadata environment variables available for pre-kubeadm commands.
+                  EnvironmentFile=/run/metadata/flatcar
+                  # Log to file
+                  StandardOutput=append:/var/log/kubeadm-service.log
+                  StandardError=inherit
+            {{- if .Values.update.enabled }}
+            - name: update-engine.service
+              enabled: true
+            {{- end }}
+    files:
+      - content: |
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            creationTimestamp: null
+            name: kube-vip
+            namespace: kube-system
+          spec:
+            containers:
+            - args:
+              - manager
+              env:
+              - name: cp_enable
+                value: "true"
+              - name: vip_interface
+                value: {{ .Values.vipNetworkInterface }}
+              - name: address
+                value: {{ .Values.controlPlaneEndpointIP }}
+              - name: port
+                value: "6443"
+              - name: vip_arp
+                value: "true"
+              - name: vip_leaderelection
+                value: "true"
+              - name: vip_leaseduration
+                value: "15"
+              - name: vip_renewdeadline
+                value: "10"
+              - name: vip_retryperiod
+                value: "2"
+              image: ghcr.io/kube-vip/kube-vip:v0.7.1
+              imagePullPolicy: IfNotPresent
+              name: kube-vip
+              resources: {}
+              securityContext:
+                capabilities:
+                  add:
+                  - NET_ADMIN
+                  - NET_RAW
+              volumeMounts:
+              - mountPath: /etc/kubernetes/admin.conf
+                name: kubeconfig
+            hostAliases:
+            - hostnames:
+              - localhost
+              - kubernetes
+              ip: 127.0.0.1
+            hostNetwork: true
+            volumes:
+            - hostPath:
+                path: /etc/kubernetes/admin.conf
+                type: FileOrCreate
+              name: kubeconfig
+          status: {}
+        owner: root:root
+        path: /etc/kubernetes/manifests/kube-vip.yaml
+        permissions: "0644"
+      - path: /etc/kube-vip-prepare.sh
+        content: |
+          #!/bin/bash
+          
+          # Copyright 2020 The Kubernetes Authors.
+          #
+          # Licensed under the Apache License, Version 2.0 (the "License");
+          # you may not use this file except in compliance with the License.
+          # You may obtain a copy of the License at
+          #
+          #     http://www.apache.org/licenses/LICENSE-2.0
+          #
+          # Unless required by applicable law or agreed to in writing, software
+          # distributed under the License is distributed on an "AS IS" BASIS,
+          # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+          # See the License for the specific language governing permissions and
+          # limitations under the License.
+          
+          set -e
+          
+          # Configure the workaround required for kubeadm init with kube-vip:
+          # xref: https://github.com/kube-vip/kube-vip/issues/684
+          
+          # Nothing to do for kubernetes < v1.29
+          KUBEADM_MINOR="$(kubeadm version -o short | cut -d '.' -f 2)"
+          if [[ "$KUBEADM_MINOR" -lt "29" ]]; then
+            exit 0
+          fi
+          
+          IS_KUBEADM_INIT="false"
+          
+          # cloud-init kubeadm init
+          if [[ -f /run/kubeadm/kubeadm.yaml ]]; then
+            IS_KUBEADM_INIT="true"
+          fi
+          
+          # ignition kubeadm init
+          if [[ -f /etc/kubeadm.sh ]] && grep -q -e "kubeadm init" /etc/kubeadm.sh; then
+            IS_KUBEADM_INIT="true"
+          fi
+          
+          if [[ "$IS_KUBEADM_INIT" == "true" ]]; then
+            sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
+              /etc/kubernetes/manifests/kube-vip.yaml
+          fi
+        owner: root:root
+        permissions: "0700"
+    preKubeadmCommands:
+      #- rm /etc/proxmox-env
+      - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+      - cp /etc/kubeadm.yml.tmp /etc/kubeadm.yml
+      - /etc/kube-vip-prepare.sh
+    users:
+      - name: core
+        {{- if .Values.vmSshKeys }}
+        sshAuthorizedKeys: {{ toYaml .Values.vmSshKeys | nindent 8 }}
+        {{- else }}
+        sshAuthorizedKeys:
+        {{- $sshSecret := (lookup "v1" "Secret" .Release.Namespace "ssh-keys") }}
+        {{- if $sshSecret }}
+          - {{ (lookup "v1" "Secret" .Release.Namespace "ssh-keys").data.key | b64dec }}
+        {{- end }}
+        {{- end }}
+        sudo: ALL=(ALL) NOPASSWD:ALL
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          - name: provider-id
+            value: "proxmox://${COREOS_CUSTOM_INSTANCE_ID}"
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          - name: provider-id
+            value: "proxmox://${COREOS_CUSTOM_INSTANCE_ID}"
+  version: {{ .Values.kubernetesVersion }}

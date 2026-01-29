@@ -1,0 +1,62 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: {{ .Values.clusterName }}
+  labels:
+    cni: calico
+    {{- if and .Values.addons.enabled .Values.addons.metrics }}
+    metrics-server: "true"
+    {{- end }}
+
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: [{{ .Values.cidrBlocks }}]
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: ProxmoxCluster
+    name: {{ .Values.clusterName }}
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiGroup: controlplane.cluster.x-k8s.io
+    name: {{ .Values.clusterName }}-control-plane
+    #name: {{ .Values.clusterName }}-control-plane-{{ include "machineTemplatePlanHash" . }}
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: {{ .Values.clusterName }}-worker
+  {{- if .Values.autoscale.enabled }}
+  annotations:
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: {{  .Values.autoscale.min | quote }}
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: {{  .Values.autoscale.max | quote }}
+  {{- end }}
+spec:
+  clusterName: {{ .Values.clusterName }}
+  {{- if not .Values.autoscale.enabled }}
+  replicas: {{ .Values.workerMachineCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: {{ .Values.clusterName }}
+      cluster.x-k8s.io/machine-role: worker
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: {{ .Values.clusterName }}
+        cluster.x-k8s.io/machine-role: worker 
+        node-role.kubernetes.io/node: "" 
+    spec:
+      clusterName: {{ .Values.clusterName }}
+      version: {{ .Values.kubernetesVersion }}
+      bootstrap:
+        configRef:
+          name: {{ .Values.clusterName }}-worker-{{ include "machineTemplateHash" . }}
+          #name: {{ .Values.clusterName }}-worker
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: {{ .Values.clusterName }}-worker-{{ include "machineTemplateHash" . }}
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: ProxmoxMachineTemplate
