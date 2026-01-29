@@ -52,7 +52,7 @@ certSANs: []
 cidrBlocks: "10.10.0.0/16"
 
 # provider capi conf : PROXMOX
-proxmoxSourceNode: "unixenv"
+proxmoxSourceNode: ""
 templateVmid: ""
 
 ## ssh 
@@ -64,7 +64,7 @@ existingSecret: ""
 #   --from-literal=key="ssh-ed25519 ..."
 
 allowedNodes: 
-  - unixenv
+  - 
 
 # currently defined in the images template created with image-builder capi
 kubernetesVersion: "v1.32.4"
