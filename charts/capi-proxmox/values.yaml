@@ -59,7 +59,7 @@ templateVmid: ""
 ## ssh 
 vmSshKeys: [] 
   # - "ssh-ed25519 ..."
-# or declare secret 
+# or declare secret # does not work actually
 existingSecret: ""
 # kubectl create secret generic my-ssh-keys \
 #   --from-literal=key="ssh-ed25519 ..."
@@ -81,17 +81,19 @@ kubernetesVersion: "v1.32.4"
 vipNetworkInterface: ""
 controlPlaneEndpointIP: ""
 nodeIPRanges: "[]"
-gateway: "192.168.0.254"
+gateway: "" #10.10.10.254
 ipPrefix: "24"
-dnsServers: 
-  - 192.168.0.50
-  - 192.168.0.254
-bridge: "br0"
+dnsServers: []
+  # - 10.10.10.254
+  # - 1.1.1.1
+bridge: "vmbr0"
 
 # ControlPlane config
 controlPlaneMachineCount: "1"
+format: ""
 bootVolumeDevice: "scsi0"
 bootVolumeSize: "20"
+networkModel: ""
 numSockets: "1"
 numCores: "2"
 memoryMiB: "6144"
@@ -99,8 +101,10 @@ memoryMiB: "6144"
 # Workers config - workerMachineCount if autoscale disable
 workerMachineCount: "1"
 bootVolumeSizeWorkers: "20"
+formatWorkers: "" 
 numSocketsWorkers: "1"
 numCoresWorkers: "2"
 memoryMiBWorkers: "8192"
+networkModelWorkers: "" 
 # longhornVolumeDevice: "scsi1"
 # longhornVolumeSize: "20"
