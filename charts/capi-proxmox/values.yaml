@@ -40,7 +40,7 @@ autoscale:
 
 # addons
 addons:
-  enabled: true
+  enabled: true # calico par default
   metrics: true
   traefik: false
 

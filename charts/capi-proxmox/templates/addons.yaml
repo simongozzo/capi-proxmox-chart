@@ -1,31 +1,4 @@
-# ---
-# apiVersion: addons.cluster.x-k8s.io/v1beta1
-# kind: ClusterResourceSet
-# metadata:
-#   name: {{ .Values.clusterName }}-calico
-#   namespace: {{ include "cluster.namespace" . }}
-# spec:
-#   clusterSelector:
-#     matchLabels:
-#       cni: calico 
-#   resources:
-#   - kind: ConfigMap
-#     name: calico-crs-configmap
-#   # - kind: ConfigMap
-#   #   name: metrics-server
-# ---
-# apiVersion: addons.cluster.x-k8s.io/v1beta1
-# kind: ClusterResourceSet
-# metadata:
-#   name: {{ .Values.clusterName }}-addons
-#   namespace: {{ include "cluster.namespace" . }}
-# spec:
-#   # clusterSelector:
-#   #   matchLabels:
-#   #     addons: enabled
-#   resources:
-#   - kind: ConfigMap
-#     name: metrics-server-configmap
+{{- if and .Values.addons.enabled }}
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
@@ -45,3 +18,4 @@ spec:
   - kind: ConfigMap
     name: metrics-server-configmap
   {{- end }}
+{{- end }}
