@@ -40,9 +40,9 @@ autoscale:
 
 # addons
 addons:
-  enabled: true 
-  calico: true
-  metrics: true
+  enabled: false 
+  calico: false
+  metrics: false
   traefik: false # testing
 
 ########
