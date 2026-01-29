@@ -1,11 +1,14 @@
 # Cluster Api template Promox. 
 
-L'idée est de deployer des clusters Kubenetes avec cluster API en mode gitops avec ArgoCD
+L'idée est de deployer des clusters Kubenetes avec cluster API en mode gitops avec ArgoCD   
+Je me sert de cette chart pour appréhender le concepte de CAPI. Je partage ici, je me dis que ça peut toujours servir à quelqu'un.
+Je déploye des clusters Flatcar basé sur une image buildé avec image builder sur le provider PROXMOX. 
 
 # Référence 
 
 https://github.com/ionos-cloud/cluster-api-provider-proxmox   
 https://cluster-api.sigs.k8s.io/introduction
+https://image-builder.sigs.k8s.io/
 
 ## installation chart via dependencies
 ```
