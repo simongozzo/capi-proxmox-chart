@@ -70,20 +70,16 @@ proxmoxSourceNode: ""
 templateVmid: ""
 
 ## ssh
-# Option 1: Déclarer les clés SSH directement (recommandé)
+# Clés SSH pour accéder aux machines
+# IMPORTANT: CAPI n'accepte que des clés SSH en clair (pas de références de secrets)
 vmSshKeys: []
   # - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample..."
   # - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQExample..."
 
-# Option 2: Utiliser un secret existant (le secret doit exister dans le namespace du cluster)
-# Le secret doit contenir une clé "key" avec la clé SSH
-existingSecret: ""
-# Exemple de création du secret:
-# kubectl create secret generic my-ssh-keys \
-#   --namespace <namespace-du-cluster> \
-#   --from-literal=key="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample..."
-#
-# Note: Si vmSshKeys est défini, existingSecret sera ignoré
+# Pour gérer les secrets de manière sécurisée en production, utilisez:
+# - Sealed Secrets: https://github.com/bitnami-labs/sealed-secrets
+# - SOPS avec ArgoCD: https://argo-cd.readthedocs.io/en/stable/user-guide/sops/
+# - External Secrets Operator: https://external-secrets.io/
 
 allowedNodes: []
   #- 

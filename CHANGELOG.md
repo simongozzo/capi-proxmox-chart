@@ -2,33 +2,6 @@
 
 Toutes les modifications notables de ce projet seront documentées dans ce fichier.
 
-## [0.1.4] - 2026-03-31
-
-### Corrigé
-- **existingSecret pour SSH** : Utilisation de `valueFrom.secret` au lieu de `lookup` pour compatibilité ArgoCD
-  - Le `lookup` ne fonctionne pas en mode dry-run d'ArgoCD
-  - Utilisation de la référence de secret native de CAPI : `valueFrom.secret.name` et `valueFrom.secret.key`
-  - CAPI résoudra la référence au moment de la création de la machine
-  - Correction appliquée dans [`controlplane.yaml`](charts/capi-proxmox/templates/controlplane.yaml) et [`bootstrap.yaml`](charts/capi-proxmox/templates/bootstrap.yaml)
-
-### Note d'utilisation
-Le secret doit être créé dans le namespace du cluster **avant** le déploiement :
-```bash
-kubectl create secret generic my-ssh-keys \
-  --namespace <namespace-du-cluster> \
-  --from-literal=key="ssh-ed25519 AAAAC3Nza..."
-```
-
-Puis dans `values.yaml` :
-```yaml
-existingSecret: "my-ssh-keys"
-```
-
-## [0.1.3] - 2026-03-31
-
-### Corrigé
-- Tentative de correction avec `lookup` (ne fonctionne pas avec ArgoCD)
-
 ## [0.1.2] - 2026-03-31
 
 ### Ajouté

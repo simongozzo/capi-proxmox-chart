@@ -236,12 +236,6 @@ spec:
         - name: core
           {{- if .Values.vmSshKeys }}
           sshAuthorizedKeys: {{ toYaml .Values.vmSshKeys | nindent 10 }}
-          {{- else if .Values.existingSecret }}
-          sshAuthorizedKeys:
-            - valueFrom:
-                secret:
-                  name: {{ .Values.existingSecret }}
-                  key: key
           {{- else }}
           sshAuthorizedKeys: []
           {{- end }}
