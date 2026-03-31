@@ -1,0 +1,86 @@
+# Exemple d'utilisation des customAddons
+# À placer dans votre fichier values.yaml de clusters-deploy
+
+clusterName: k8sdev
+namespace: dev
+
+# Configuration réseau
+controlPlaneEndpointIP: "10.10.10.100"
+vipNetworkInterface: "ens18"
+gateway: "10.10.10.254"
+ipPrefix: "24"
+dnsServers:
+  - 10.10.10.254
+  - 1.1.1.1
+
+# Configuration Proxmox
+proxmoxSourceNode: "pve01"
+templateVmid: "9000"
+
+# SSH Keys
+vmSshKeys:
+  - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample..."
+
+# Addons intégrés
+addons:
+  enabled: true
+  calico: true
+  metrics: true
+
+# Addons personnalisés - NOUVELLE FONCTIONNALITÉ v0.1.2
+customAddons:
+  # Exemple 1: Longhorn pour le stockage persistant
+  - name: longhorn
+    data:
+      longhorn.yaml: |
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: longhorn-system
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: longhorn-service-account
+          namespace: longhorn-system
+        ---
+        # Ajoutez ici le reste de votre manifest Longhorn
+        # Vous pouvez copier le contenu depuis:
+        # kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+
+  # Exemple 2: Cert-Manager
+  - name: cert-manager
+    data:
+      cert-manager.yaml: |
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: cert-manager
+        ---
+        # Ajoutez ici le manifest cert-manager complet
+        # https://github.com/cert-manager/cert-manager/releases
+
+  # Exemple 3: Ingress NGINX
+  - name: ingress-nginx
+    data:
+      ingress-nginx.yaml: |
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: ingress-nginx
+        ---
+        # Manifest ingress-nginx
+        # https://kubernetes.github.io/ingress-nginx/deploy/
+
+  # Exemple 4: Configuration personnalisée simple
+  - name: custom-config
+    data:
+      config.yaml: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: cluster-config
+          namespace: kube-system
+        data:
+          environment: "development"
+          region: "eu-west-1"

@@ -1,4 +1,4 @@
-{{- if and .Values.addons.enabled }}
+{{- if or .Values.addons.enabled .Values.customAddons }}
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
@@ -13,6 +13,9 @@ spec:
       {{- if and .Values.addons.enabled .Values.addons.metrics }}
       metrics-server: "true"
       {{- end }}
+      {{- if .Values.customAddons }}
+      custom-addons: "true"
+      {{- end }}
   resources:
   {{- if and .Values.addons.enabled .Values.addons.calico }}
   - kind: ConfigMap
@@ -21,5 +24,9 @@ spec:
   {{- if and .Values.addons.enabled .Values.addons.metrics }}
   - kind: ConfigMap
     name: metrics-server-configmap
+  {{- end }}
+  {{- range .Values.customAddons }}
+  - kind: ConfigMap
+    name: {{ .name }}-configmap
   {{- end }}
 {{- end }}

@@ -1,0 +1,12 @@
+{{- if .Values.customAddons }}
+{{- range .Values.customAddons }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-configmap
+  namespace: {{ include "cluster.namespace" $ }}
+data:
+{{- toYaml .data | nindent 2 }}
+{{- end }}
+{{- end }}

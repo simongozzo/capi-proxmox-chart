@@ -1,41 +1,42 @@
-# Cluster Api template Promox FLATCAR
+# Cluster API template Proxmox FLATCAR
 
-L'idée est de deployer des clusters Kubenetes avec cluster API en mode gitops avec ArgoCD.   
-Je me sert de cette chart pour appréhender le concepte de CAPI. 
-Je partage ici, je me dis que ça peut toujours servir à quelqu'un.  
-Je déploye des clusters Flatcar basé sur une image buildé avec image builder sur le provider PROXMOX. 
-Il y a surement des trucs qui marche pas et des trucs qui servent à rien.  
+L'idée est de déployer des clusters Kubernetes avec Cluster API en mode GitOps avec ArgoCD.
+Je me sers de cette chart pour appréhender le concept de CAPI.
+Je partage ici, je me dis que ça peut toujours servir à quelqu'un.
+Je déploie des clusters Flatcar basés sur une image buildée avec image-builder sur le provider PROXMOX.
+Il y a sûrement des trucs qui marchent pas et des trucs qui servent à rien.
 
-# Référence 
+# Référence
 
-https://github.com/ionos-cloud/cluster-api-provider-proxmox   
-https://cluster-api.sigs.k8s.io/introduction  
+https://github.com/ionos-cloud/cluster-api-provider-proxmox
+https://cluster-api.sigs.k8s.io/introduction
 https://image-builder.sigs.k8s.io/
 
 ## Les indispensables
-### serveur proxmox 
-L'installation qui vous plaira. 
-https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_12_Bookworm  
+### Serveur Proxmox
+L'installation qui vous plaira.
+https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_12_Bookworm
 
-### cluster existant
-L'installation qui vous plaira. 
+### Cluster existant
+L'installation qui vous plaira.
 https://kind.sigs.k8s.io/docs/user/quick-start/
 https://docs.k3s.io/installation
 
-### ArgoCD sur le cluster de existant
+### ArgoCD sur le cluster existant
 https://argo-cd.readthedocs.io/en/stable/
 
-## installation chart via dependencies
-```
+## Installation de la chart via dependencies
+```yaml
 apiVersion: v2
 name: capi-proxmox
 version: 0.1.0
 dependencies:
   - name: capi-proxmox
-    version: 0.1.0
-    repository: "https://simongozzo.github.io/capi-proxmox-chart
+    version: 0.1.2
+    repository: "https://simongozzo.github.io/capi-proxmox-chart"
 ```
-## structure du depot git declarer les valeurs
+
+## Structure du dépôt git pour déclarer les valeurs
 ```
 ➜  clusters-deploy git:(main) tree
 .
@@ -50,7 +51,40 @@ dependencies:
         ├── templates
         └── values.yaml
 ```
-## stucture de l'ApplicationSet ArgoCD
+
+## Addons personnalisés
+
+**Nouveauté v0.1.2** : Vous pouvez maintenant ajouter vos propres templates/addons depuis votre structure `clusters-deploy` !
+
+### Exemple d'utilisation
+
+Dans votre `clusters/dev/values.yaml` :
+
+```yaml
+clusterName: k8sdev
+# ... autres configurations ...
+
+# Addons personnalisés
+customAddons:
+  - name: longhorn
+    data:
+      longhorn.yaml: |
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: longhorn-system
+        ---
+        # Votre manifest Longhorn complet ici
+        
+  - name: monitoring
+    data:
+      prometheus.yaml: |
+        # Vos manifests de monitoring
+```
+
+Les addons personnalisés seront automatiquement déployés sur le cluster via le mécanisme `ClusterResourceSet` de CAPI.
+
+## Structure de l'ApplicationSet ArgoCD
 ```
 ---
 apiVersion: argoproj.io/v1alpha1

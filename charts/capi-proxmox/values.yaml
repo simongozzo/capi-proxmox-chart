@@ -40,10 +40,23 @@ autoscale:
 
 # addons
 addons:
-  enabled: false 
+  enabled: false
   calico: false
   metrics: false
   traefik: false # testing
+
+# Custom addons - permet d'ajouter des ConfigMaps personnalisés au ClusterResourceSet
+# Exemple d'utilisation dans votre chart parent (clusters-deploy) :
+# customAddons:
+#   - name: longhorn
+#     data:
+#       longhorn.yaml: |
+#         # Votre manifest Longhorn ici
+#   - name: cert-manager
+#     data:
+#       cert-manager.yaml: |
+#         # Votre manifest cert-manager ici
+customAddons: []
 
 ########
 # cluster Config

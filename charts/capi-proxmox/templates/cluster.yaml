@@ -8,6 +8,9 @@ metadata:
     {{- if and .Values.addons.enabled .Values.addons.metrics }}
     metrics-server: "true"
     {{- end }}
+    {{- if .Values.customAddons }}
+    custom-addons: "true"
+    {{- end }}
 
 spec:
   clusterNetwork:

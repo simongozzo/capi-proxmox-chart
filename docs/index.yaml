@@ -2,7 +2,27 @@ apiVersion: v1
 entries:
   capi-proxmox:
   - apiVersion: v2
-    created: "2026-01-29T15:59:24.571986+01:00"
+    created: "2026-03-31T17:12:18.206457+02:00"
+    description: Chart Helm pour déployer des clusters Kubernetes avec Cluster API
+      sur Proxmox
+    digest: ad03ab36737aa258fb6fc30776e827c982118c9c2a2445dc39a4668a9a0f5b4a
+    name: capi-proxmox
+    sources:
+    - https://github.com/simongozzo/capi-proxmox-chart/
+    urls:
+    - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    created: "2026-03-31T17:12:18.204966+02:00"
+    digest: ed0feb090c2be485d10e9c83a2c7e2dee1b9d10574f5b3b2dfc746fb67324902
+    name: capi-proxmox
+    sources:
+    - https://github.com/simongozzo/capi-proxmox-chart/
+    urls:
+    - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    created: "2026-03-31T17:12:18.203402+02:00"
     digest: 68ef66aca2a1a1d8248e1ae0c73594ad747fa7222201840254f8a33a4c3dd73b
     name: capi-proxmox
     sources:
@@ -10,4 +30,4 @@ entries:
     urls:
     - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-29T15:59:24.568952+01:00"
+generated: "2026-03-31T17:12:18.200197+02:00"

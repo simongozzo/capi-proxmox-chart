@@ -1,5 +1,6 @@
 apiVersion: v2
 name: capi-proxmox
-version: 0.1.1
+version: 0.1.2
+description: Chart Helm pour déployer des clusters Kubernetes avec Cluster API sur Proxmox
 sources:
 - https://github.com/simongozzo/capi-proxmox-chart/

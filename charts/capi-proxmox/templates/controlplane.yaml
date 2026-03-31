@@ -16,7 +16,7 @@ spec:
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
-        certSANs: {{ toYaml .Values.certSANs | nindent 8 }}
+        certSANs: {{ toYaml .Values.certSANs | nindent 10 }}
     format: ignition
     ignition:
       containerLinuxConfig:
