@@ -2,21 +2,43 @@ apiVersion: v1
 entries:
   capi-proxmox:
   - apiVersion: v2
-    created: "2026-01-29T17:04:46.449064+01:00"
-    digest: c42794993eee5a39aac2b70bc458d5d5c99ad9c44ab187d3a30b19a76604ee4a
+    created: "2026-03-31T17:27:56.460934+02:00"
+    description: Chart Helm pour déployer des clusters Kubernetes avec Cluster API
+      sur Proxmox
+    digest: d86d88d1dcae790b295b23da6e3de6ca80a3cd13847d8f068705fbd48477397d
     name: capi-proxmox
     sources:
     - https://github.com/simongozzo/capi-proxmox-chart/
     urls:
-    - https://simongozzo.github.io/capi-proxmox-chart/docs/capi-proxmox-0.1.1.tgz
+    - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.3.tgz
+    version: 0.1.3
+  - apiVersion: v2
+    created: "2026-03-31T17:27:56.458914+02:00"
+    description: Chart Helm pour déployer des clusters Kubernetes avec Cluster API
+      sur Proxmox
+    digest: ad03ab36737aa258fb6fc30776e827c982118c9c2a2445dc39a4668a9a0f5b4a
+    name: capi-proxmox
+    sources:
+    - https://github.com/simongozzo/capi-proxmox-chart/
+    urls:
+    - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    created: "2026-03-31T17:27:56.457309+02:00"
+    digest: ed0feb090c2be485d10e9c83a2c7e2dee1b9d10574f5b3b2dfc746fb67324902
+    name: capi-proxmox
+    sources:
+    - https://github.com/simongozzo/capi-proxmox-chart/
+    urls:
+    - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.1.tgz
     version: 0.1.1
   - apiVersion: v2
-    created: "2026-01-29T17:04:46.446114+01:00"
+    created: "2026-03-31T17:27:56.455771+02:00"
     digest: 68ef66aca2a1a1d8248e1ae0c73594ad747fa7222201840254f8a33a4c3dd73b
     name: capi-proxmox
     sources:
     - https://github.com/simongozzo/capi-proxmox-chart/
     urls:
-    - https://simongozzo.github.io/capi-proxmox-chart/docs/capi-proxmox-0.1.0.tgz
+    - https://simongozzo.github.io/capi-proxmox-chart/capi-proxmox-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-29T17:04:46.444386+01:00"
+generated: "2026-03-31T17:27:56.452662+02:00"
