@@ -69,13 +69,21 @@ cidrBlocks: "10.10.0.0/16"
 proxmoxSourceNode: ""
 templateVmid: ""
 
-## ssh 
-vmSshKeys: [] 
-  # - "ssh-ed25519 ..."
-# or declare secret # does not work actually
+## ssh
+# Option 1: Déclarer les clés SSH directement (recommandé)
+vmSshKeys: []
+  # - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample..."
+  # - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQExample..."
+
+# Option 2: Utiliser un secret existant (le secret doit exister dans le namespace du cluster)
+# Le secret doit contenir une clé "key" avec la clé SSH
 existingSecret: ""
+# Exemple de création du secret:
 # kubectl create secret generic my-ssh-keys \
-#   --from-literal=key="ssh-ed25519 ..."
+#   --namespace <namespace-du-cluster> \
+#   --from-literal=key="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample..."
+#
+# Note: Si vmSshKeys est défini, existingSecret sera ignoré
 
 allowedNodes: []
   #- 

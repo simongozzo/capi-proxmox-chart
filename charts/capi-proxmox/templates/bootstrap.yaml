@@ -236,11 +236,16 @@ spec:
         - name: core
           {{- if .Values.vmSshKeys }}
           sshAuthorizedKeys: {{ toYaml .Values.vmSshKeys | nindent 10 }}
-          {{- else }}
+          {{- else if .Values.existingSecret }}
           sshAuthorizedKeys:
-          {{- $sshSecret := (lookup "v1" "Secret" .Release.Namespace .Values.existingSecret) }}
+          {{- $sshSecret := (lookup "v1" "Secret" (include "cluster.namespace" .) .Values.existingSecret) }}
           {{- if $sshSecret }}
-            - {{ (lookup "v1" "Secret" .Release.Namespace .Values.existingSecret).data.key | b64dec }}
+            - {{ $sshSecret.data.key | b64dec }}
+          {{- else }}
+            # Secret {{ .Values.existingSecret }} not found or not yet created
+            []
           {{- end }}
+          {{- else }}
+          sshAuthorizedKeys: []
           {{- end }}
           sudo: ALL=(ALL) NOPASSWD:ALL
