@@ -238,13 +238,10 @@ spec:
           sshAuthorizedKeys: {{ toYaml .Values.vmSshKeys | nindent 10 }}
           {{- else if .Values.existingSecret }}
           sshAuthorizedKeys:
-          {{- $sshSecret := (lookup "v1" "Secret" (include "cluster.namespace" .) .Values.existingSecret) }}
-          {{- if $sshSecret }}
-            - {{ $sshSecret.data.key | b64dec }}
-          {{- else }}
-            # Secret {{ .Values.existingSecret }} not found or not yet created
-            []
-          {{- end }}
+            - valueFrom:
+                secret:
+                  name: {{ .Values.existingSecret }}
+                  key: key
           {{- else }}
           sshAuthorizedKeys: []
           {{- end }}
